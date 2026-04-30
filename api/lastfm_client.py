@@ -24,16 +24,18 @@ def fetch_lastfm(method: str, **kwargs) -> Dict[str, Any]:
         "format": "json",
         **kwargs,
     }
+    params.update(dict(sorted(kwargs.items())))
 
     try:
         response = requests.get(BASE_URL, params=params, timeout=10)
         response.raise_for_status()
         return response.json()
-    except requests.RequestException:
+    except requests.RequestException as e:
+        st.warning(f"Last.fm request failed: {e}")
         return {}
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=3600)
 def get_album_info(artist: str, album: str) -> Dict[str, Any]:
     return fetch_lastfm(
         "album.getinfo",
@@ -77,14 +79,10 @@ def normalize_tracks(tracks: List[Dict[str, Any]]) -> pd.DataFrame:
 # ------------------------
 # ENRICHMENT
 # ------------------------
-
-
 def _resolve_track_count(tracks: Any) -> int:
-    if isinstance(tracks, list):
-        return len(tracks)
-    if isinstance(tracks, dict):
-        return 1
-    return 0
+    if not tracks:
+        return 0
+    return len(tracks) if isinstance(tracks, list) else 1
 
 
 @st.cache_data(show_spinner=True)
@@ -114,13 +112,17 @@ def enrich_albums(df: pd.DataFrame) -> pd.DataFrame:
         playcount = parse_int(getattr(row, "playcount", None), 0)
         rank = parse_int(getattr(row, "rank", None), 0)
 
+        base = {
+            "album_name": album_name,
+            "artist_name": artist_name,
+            "playcount": playcount,
+            "rank": rank,
+        }
+
         if not album_name or not artist_name:
             records.append(
                 {
-                    "album_name": album_name,
-                    "artist_name": artist_name,
-                    "playcount": playcount,
-                    "rank": rank,
+                    **base,
                     "listeners": None,
                     "track_count": 0,
                     "plays_per_track": None,
@@ -130,18 +132,18 @@ def enrich_albums(df: pd.DataFrame) -> pd.DataFrame:
             continue
 
         response = get_album_info(str(artist_name), str(album_name))
-        album = response.get("album", {}) if isinstance(response, dict) else {}
+
+        album = response.get("album", {}) if response else {}
 
         listeners = parse_int(album.get("listeners"))
+
         tracks = album.get("tracks", {}).get("track", [])
-        track_count = _resolve_track_count(tracks)
+
+        track_count = len(tracks) if isinstance(tracks, list) else 1 if tracks else 0
 
         records.append(
             {
-                "album_name": album_name,
-                "artist_name": artist_name,
-                "playcount": playcount,
-                "rank": rank,
+                **base,
                 "listeners": listeners,
                 "track_count": track_count,
                 "plays_per_track": _safe_div(playcount, track_count),
