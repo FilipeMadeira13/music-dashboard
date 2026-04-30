@@ -43,22 +43,20 @@ def get_album_info(artist: str, album: str) -> Dict[str, Any]:
 
 
 # ------------------------
-# Normalização
+# NORMALIZATION
 # ------------------------
-def normalize_albums(albums):
-    normalized = []
+def normalize_albums(albums: List[Dict[str, Any]]) -> pd.DataFrame:
+    data = [
+        {
+            "album_name": a.get("name"),
+            "artist_name": a.get("artist", {}).get("name"),
+            "playcount": parse_int(a.get("playcount"), 0),
+            "rank": parse_int(a.get("@attr", {}).get("rank"), 0),
+        }
+        for a in albums
+    ]
 
-    for a in albums:
-        normalized.append(
-            {
-                "album_name": a.get("name"),
-                "artist_name": a.get("artist", {}).get("name"),
-                "playcount": int(a.get("playcount", 0)),
-                "rank": int(a.get("@attr", {}).get("rank", 0)),
-            }
-        )
-
-    return pd.DataFrame(normalized)
+    return pd.DataFrame(data)
 
 
 def normalize_tracks(tracks):
