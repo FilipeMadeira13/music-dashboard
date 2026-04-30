@@ -59,19 +59,17 @@ def normalize_albums(albums: List[Dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
-def normalize_tracks(tracks):
-    data = []
-
-    for t in tracks:
-        track_data = {
+def normalize_tracks(tracks: List[Dict[str, Any]]) -> pd.DataFrame:
+    data = [
+        {
             "track_name": t.get("name"),
             "artist_name": t.get("artist", {}).get("name"),
-            "playcount": int(t.get("playcount", 0)),
-            "listeners": int(t.get("listeners", 0)),
-            "rank": int(t.get("@attr", {}).get("rank", 0)),
+            "playcount": parse_int(t.get("playcount")),
+            "listeners": parse_int(t.get("listeners")),
+            "rank": parse_int(t.get("@attr", {}).get("rank")),
         }
-
-        data.append(track_data)
+        for t in tracks
+    ]
 
     return pd.DataFrame(data)
 
