@@ -1,7 +1,9 @@
 import pandas as pd
 import streamlit as st
 
-from last_fm import fetch_lastfm, normalize_tracks
+from last_fm import converte_csv, fetch_lastfm, mensagem_sucesso, normalize_tracks
+
+st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 
 
 ## Organização dos dados
@@ -19,7 +21,7 @@ def load_data(artist, quantity):
 st.title("Dashboard Musical :red[last.fm]", text_alignment="center")
 
 artist = st.text_input("Digite o artista", "Metallica")
-quantity = st.text_input("Número de álbuns", 10)
+quantity = st.number_input("Número de faixas", 2, 500, 50)
 
 ### Dashboard/Métricas
 col1, col2 = st.columns(2)
@@ -38,6 +40,23 @@ if artist:
         st.metric(label="Plays por Listener", value=f"{global_ratio:.2f}")
 
     ### Dashboard/Tabela
+    with st.expander("Colunas"):
+        colunas = st.multiselect(
+            "Selecione as colunas", list(df.columns), list(df.columns)
+        )
     st.title("Top Tracks", text_alignment="center")
 
-    st.dataframe(df)
+    st.dataframe(df[colunas])
+    st.markdown("Escreva um nome para o arquivo")
+    coluna1, coluna2 = st.columns(2)
+    with coluna1:
+        nome_arquivo = st.text_input("", label_visibility="collapsed", value="tracks")
+        nome_arquivo += ".csv"
+    with coluna2:
+        st.download_button(
+            "Fazer o download da tabela em CSV",
+            data=converte_csv(df),
+            file_name=nome_arquivo,
+            mime="text/csv",
+            on_click=mensagem_sucesso,
+        )

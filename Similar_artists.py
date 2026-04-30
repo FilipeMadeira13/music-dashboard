@@ -2,7 +2,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from last_fm import fetch_lastfm
+from last_fm import converte_csv, fetch_lastfm, mensagem_sucesso
+
+st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 
 
 ## Organização dos dados
@@ -20,7 +22,7 @@ def load_data(artist, quantity):
 st.title("Dashboard Musical :red[last.fm]", text_alignment="center")
 
 artist = st.text_input("Digite o artista", "Metallica")
-quantity = st.text_input("Número de artistas", 10)
+quantity = st.number_input("Número de artistas", 2, 250, 10)
 
 if artist:
     df = load_data(artist, quantity)
@@ -41,5 +43,24 @@ if artist:
     st.metric("Similaridade média do Artista", f"{media_match:.2f}")
 
     ### Dashboard/Tabela
-    st.dataframe(df)
+    with st.expander("Colunas"):
+        colunas = st.multiselect(
+            "Selecione as colunas", list(df.columns), list(df.columns)
+        )
+    st.dataframe(df[colunas])
     st.plotly_chart(fig_match)
+    st.markdown("Escreva um nome para o arquivo")
+    coluna1, coluna2 = st.columns(2)
+    with coluna1:
+        nome_arquivo = st.text_input(
+            "", label_visibility="collapsed", value="similar_artists"
+        )
+        nome_arquivo += ".csv"
+    with coluna2:
+        st.download_button(
+            "Fazer o download da tabela em CSV",
+            data=converte_csv(df),
+            file_name=nome_arquivo,
+            mime="text/csv",
+            on_click=mensagem_sucesso,
+        )
