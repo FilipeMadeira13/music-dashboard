@@ -4,27 +4,42 @@ import streamlit as st
 
 from last_fm import fetch_lastfm
 
-## Organização dos dados
-data = fetch_lastfm("artist.getsimilar", artist="Iron Maiden", limit=250)
-artists = data["similarartists"]["artist"]
 
-df = pd.json_normalize(artists)
-df = df[["name", "match"]]
+## Organização dos dados
+@st.cache_data(show_spinner=True)
+def load_data(artist, quantity):
+    data = fetch_lastfm("artist.getsimilar", artist=artist, limit=quantity)
+    artists = data["similarartists"]["artist"]
+
+    df = pd.json_normalize(artists)
+    df = df[["name", "match"]]
+    return df
+
 
 ## Dashboard
 st.title("Dashboard Musical :red[last.fm]", text_alignment="center")
 
+artist = st.text_input("Digite o artista", "Metallica")
+quantity = st.text_input("Número de artistas", 10)
 
-media_match = df["match"].astype(float).mean()
+if artist:
+    df = load_data(artist, quantity)
+    df.columns = ["Artista", "Match"]
 
-### Dashboard/Métricas
-col1, col2 = st.columns(2)
+    ### Gráficos
+    fig_match = px.line(
+        df,
+        x="Artista",
+        y="Match",
+        range_y=(0, df.Match.max()),
+        title="Similaridade com o artista",
+    )
 
-with col1:
+    ### Dashboard/Métricas
+
+    media_match = df["Match"].astype(float).mean()
     st.metric("Similaridade média do Artista", f"{media_match:.2f}")
 
-with col2:
-    st.metric("Número de Artistas similares", df.shape[0])
-
-### Dashboard/Tabela
-st.dataframe(df)
+    ### Dashboard/Tabela
+    st.dataframe(df)
+    st.plotly_chart(fig_match)

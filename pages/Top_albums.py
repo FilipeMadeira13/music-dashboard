@@ -1,25 +1,36 @@
-import pandas as pd
 import streamlit as st
+import plotly.express as px
 
-from last_fm import enrich_albums, fetch_lastfm, get_album_info, normalize_albums
-
-## Organização dos dados
-data = fetch_lastfm("artist.gettopalbums", artist="Running Wild", limit=20)
+from last_fm import enrich_albums, fetch_lastfm, normalize_albums
 
 
-albums = data["topalbums"]["album"]
+# ------------------------
+# Carregamento de dados
+# ------------------------
+@st.cache_data(show_spinner=True)
+def load_data(artist, quantity):
+    artist = artist.strip()
 
-df = normalize_albums(albums)
-df = enrich_albums(df)
+    data = fetch_lastfm("artist.gettopalbums", artist=artist, limit=quantity)
+    albums = data["topalbums"]["album"]
 
-df = df.sort_values(by="plays_per_track", ascending=False).reset_index(drop=True)
+    df = normalize_albums(albums)
+    df = enrich_albums(df)
 
-## Dashboard
+    return df
+
+
+# ------------------------
+# Dashboard
+# ------------------------
 st.title("Dashboard Musical :red[last.fm]", text_alignment="center")
-st.title("Top Albums", text_alignment="center")
 
-st.metric("Número de Álbuns", df.shape[0])
+artist = st.text_input("Digite o artista", "Metallica")
+quantity = st.text_input("Número de álbuns", 10)
 
+if artist:
+    df = load_data(artist, quantity)
 
-### Dashboard/Tabela
-st.dataframe(df)
+    df = df.sort_values(by="rank").reset_index(drop=True)
+
+    st.dataframe(df)
