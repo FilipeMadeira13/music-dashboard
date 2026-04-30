@@ -1,7 +1,8 @@
 import pandas as pd
 import streamlit as st
 
-from last_fm import converte_csv, fetch_lastfm, mensagem_sucesso, normalize_tracks
+from api.lastfm_client import fetch_lastfm, normalize_tracks
+from utils.utils import converte_csv, mensagem_sucesso
 
 st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 

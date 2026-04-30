@@ -1,13 +1,12 @@
 import streamlit as st
 import plotly.express as px
 
-from last_fm import (
-    converte_csv,
+from api.lastfm_client import (
     enrich_albums,
     fetch_lastfm,
-    mensagem_sucesso,
     normalize_albums,
 )
+from utils.utils import converte_csv, mensagem_sucesso
 
 st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 
