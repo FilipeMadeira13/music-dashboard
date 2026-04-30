@@ -33,22 +33,13 @@ def fetch_lastfm(method: str, **kwargs) -> Dict[str, Any]:
         return {}
 
 
-@st.cache_data
-def get_album_info(artist, album):
-    params = {
-        "method": "album.getinfo",
-        "artist": artist,
-        "album": album,
-        "api_key": API_KEY,
-        "format": "json",
-    }
-
-    response = requests.get(BASE_URL, params=params)
-
-    if response.status_code != 200:
-        return {}
-
-    return response.json()
+@st.cache_data(show_spinner=False)
+def get_album_info(artist: str, album: str) -> Dict[str, Any]:
+    return fetch_lastfm(
+        "album.getinfo",
+        artist=artist,
+        album=album,
+    )
 
 
 # ------------------------
