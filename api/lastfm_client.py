@@ -1,23 +1,21 @@
-import pandas as pd
 import requests
+import pandas as pd
 import streamlit as st
-from dotenv import load_dotenv
-import time
-from typing import Optional, Union
+from typing import Any, Dict, List
 
-from config import load_environment, get_api_key, BASE_URL
-from utils.utils import parse_int
+from config import BASE_URL, get_api_key, load_environment
+from utils.utils import parse_int, _safe_div
 
 load_environment()
 API_KEY = get_api_key()
 
 
 # ------------------------
-# Last.fm API
+# HTTP CORE
 # ------------------------
 @st.cache_data(show_spinner=False)
-def fetch_lastfm(method, **kwargs):
-    if not method or not isinstance(method, str):
+def fetch_lastfm(method: str, **kwargs) -> Dict[str, Any]:
+    if not isinstance(method, str) or not method:
         raise ValueError("method must be a non-empty string")
 
     params = {
@@ -27,10 +25,12 @@ def fetch_lastfm(method, **kwargs):
         **kwargs,
     }
 
-    response = requests.get(BASE_URL, params=params)
-    response.raise_for_status()
-
-    return response.json()
+    try:
+        response = requests.get(BASE_URL, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException:
+        return {}
 
 
 @st.cache_data

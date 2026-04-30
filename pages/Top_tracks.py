@@ -53,7 +53,10 @@ if artist:
     coluna1, coluna2 = st.columns(2)
     with coluna1:
         nome_arquivo = st.text_input(
-            "", label_visibility="collapsed", value="tracks", key="tracks_input"
+            "Nome do arquivo",
+            label_visibility="collapsed",
+            value="tracks",
+            key="tracks_input",
         )
         nome_arquivo += ".csv"
     with coluna2:

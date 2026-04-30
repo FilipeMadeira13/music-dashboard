@@ -1,11 +1,7 @@
-import streamlit as st
 import plotly.express as px
+import streamlit as st
 
-from api.lastfm_client import (
-    enrich_albums,
-    fetch_lastfm,
-    normalize_albums,
-)
+from api.lastfm_client import enrich_albums, fetch_lastfm, normalize_albums
 from ui.notifications import show_success_message
 from utils.utils import dataframe_to_csv_bytes
 
@@ -50,7 +46,10 @@ if artist:
     coluna1, coluna2 = st.columns(2)
     with coluna1:
         nome_arquivo = st.text_input(
-            "", label_visibility="collapsed", value="albums", key="albums_input"
+            "Nome do arquivo",
+            label_visibility="collapsed",
+            value="albums",
+            key="albums_input",
         )
         nome_arquivo += ".csv"
     with coluna2:

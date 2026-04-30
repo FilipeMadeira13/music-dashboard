@@ -1,4 +1,4 @@
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 
 def parse_int(
@@ -11,6 +11,12 @@ def parse_int(
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _safe_div(numerator: float, denominator: float) -> float | None:
+    if not denominator:
+        return None
+    return numerator / denominator
 
 
 def dataframe_to_csv_bytes(df: Any) -> bytes:
