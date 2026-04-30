@@ -74,31 +74,79 @@ def normalize_tracks(tracks: List[Dict[str, Any]]) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
+# ------------------------
+# ENRICHMENT
+# ------------------------
+
+
+def _resolve_track_count(tracks: Any) -> int:
+    if isinstance(tracks, list):
+        return len(tracks)
+    if isinstance(tracks, dict):
+        return 1
+    return 0
+
+
 @st.cache_data(show_spinner=True)
-def enrich_albums(df):
-    df = df.copy()
-    enriched = []
+def enrich_albums(df: pd.DataFrame) -> pd.DataFrame:
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df must be a pandas DataFrame")
+
+    if df.empty:
+        return pd.DataFrame(
+            columns=[
+                "album_name",
+                "artist_name",
+                "playcount",
+                "rank",
+                "listeners",
+                "track_count",
+                "plays_per_track",
+                "plays_per_listener",
+            ]
+        )
+
+    records = []
 
     for row in df.itertuples(index=False):
-        data = get_album_info(row.artist_name, row.album_name)
-        album = data.get("album", {})
+        album_name = getattr(row, "album_name", None)
+        artist_name = getattr(row, "artist_name", None)
+        playcount = parse_int(getattr(row, "playcount", None), 0)
+        rank = parse_int(getattr(row, "rank", None), 0)
+
+        if not album_name or not artist_name:
+            records.append(
+                {
+                    "album_name": album_name,
+                    "artist_name": artist_name,
+                    "playcount": playcount,
+                    "rank": rank,
+                    "listeners": None,
+                    "track_count": 0,
+                    "plays_per_track": None,
+                    "plays_per_listener": None,
+                }
+            )
+            continue
+
+        response = get_album_info(str(artist_name), str(album_name))
+        album = response.get("album", {}) if isinstance(response, dict) else {}
 
         listeners = parse_int(album.get("listeners"))
         tracks = album.get("tracks", {}).get("track", [])
-        track_count = len(tracks) if isinstance(tracks, list) else 1
-        release_date = str(album.get("releasedate", "")).strip() or None
+        track_count = _resolve_track_count(tracks)
 
-        enriched.append(
+        records.append(
             {
-                "album_name": row.album_name,
-                "artist_name": row.artist_name,
-                "playcount": row.playcount,
-                "rank": row.rank,
+                "album_name": album_name,
+                "artist_name": artist_name,
+                "playcount": playcount,
+                "rank": rank,
                 "listeners": listeners,
                 "track_count": track_count,
-                "plays_per_track": row.playcount / track_count if track_count else None,
-                "plays_per_listener": row.playcount / listeners if listeners else None,
+                "plays_per_track": _safe_div(playcount, track_count),
+                "plays_per_listener": _safe_div(playcount, listeners),
             }
         )
 
-    return pd.DataFrame(enriched)
+    return pd.DataFrame(records)

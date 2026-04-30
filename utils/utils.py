@@ -13,8 +13,11 @@ def parse_int(
         return default
 
 
-def _safe_div(numerator: float, denominator: float) -> float | None:
-    if not denominator:
+def _safe_div(
+    numerator: int | float | None,
+    denominator: int | float | None,
+) -> float | None:
+    if numerator is None or denominator is None or denominator == 0:
         return None
     return numerator / denominator
 
