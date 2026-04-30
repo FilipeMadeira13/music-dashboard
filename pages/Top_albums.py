@@ -6,7 +6,8 @@ from api.lastfm_client import (
     fetch_lastfm,
     normalize_albums,
 )
-from utils.utils import converte_csv, mensagem_sucesso
+from ui.notifications import show_success_message
+from utils.utils import dataframe_to_csv_bytes
 
 st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 
@@ -48,13 +49,15 @@ if artist:
     st.markdown("Escreva um nome para o arquivo")
     coluna1, coluna2 = st.columns(2)
     with coluna1:
-        nome_arquivo = st.text_input("", label_visibility="collapsed", value="albums")
+        nome_arquivo = st.text_input(
+            "", label_visibility="collapsed", value="albums", key="albums_input"
+        )
         nome_arquivo += ".csv"
     with coluna2:
         st.download_button(
             "Fazer o download da tabela em CSV",
-            data=converte_csv(df),
+            data=dataframe_to_csv_bytes(df),
             file_name=nome_arquivo,
             mime="text/csv",
-            on_click=mensagem_sucesso,
+            on_click=show_success_message,
         )

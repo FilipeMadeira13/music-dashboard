@@ -1,6 +1,4 @@
-import time
-from typing import Optional, Union
-import streamlit as st
+from typing import Optional, Union, Any
 
 
 def parse_int(
@@ -15,12 +13,5 @@ def parse_int(
         return default
 
 
-@st.cache_data
-def converte_csv(df):
+def dataframe_to_csv_bytes(df: Any) -> bytes:
     return df.to_csv(index=False).encode("utf-8")
-
-
-def mensagem_sucesso():
-    sucesso = st.success("Arquivo baixado com sucesso!", icon="✅")
-    time.sleep(5)
-    sucesso.empty()
