@@ -1,5 +1,3 @@
-import time
-
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -11,14 +9,22 @@ from utils.utils import dataframe_to_csv_bytes
 st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 
 
-## Funções
+# ------------------------
+# DATA
+# ------------------------
 @st.cache_data(show_spinner=True)
-def load_data(artist, quantity):
+def load_data(artist: str, quantity: int) -> pd.DataFrame:
     data = fetch_lastfm("artist.getsimilar", artist=artist, limit=quantity)
-    artists = data["similarartists"]["artist"]
+    artists = data.get("similarartists", {}).get("artist", [])
 
     df = pd.json_normalize(artists)
-    df = df[["name", "match"]]
+    df = df[["name", "match"]].rename(
+        columns={
+            "name": "Artista",
+            "match": "Match",
+        }
+    )
+    df["Match"] = pd.to_numeric(df["Match"], errors="coerce").fillna(0)
     return df
 
 
