@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import streamlit as st
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List
 
 from config import BASE_URL, get_api_key, load_environment
@@ -85,6 +86,43 @@ def _resolve_track_count(tracks: Any) -> int:
     return len(tracks) if isinstance(tracks, list) else 1
 
 
+def _build_album_record(
+    album_name: str | None,
+    artist_name: str | None,
+    playcount: int | None,
+    rank: int | None,
+) -> Dict[str, Any]:
+    base = {
+        "album_name": album_name,
+        "artist_name": artist_name,
+        "playcount": parse_int(playcount, 0),
+        "rank": parse_int(rank, 0),
+    }
+
+    if not album_name or not artist_name:
+        return {
+            **base,
+            "listeners": None,
+            "track_count": 0,
+            "plays_per_track": None,
+            "plays_per_listener": None,
+        }
+
+    response = get_album_info(str(artist_name), str(album_name))
+    album = response.get("album", {}) if response else {}
+    listeners = parse_int(album.get("listeners"))
+    tracks = album.get("tracks", {}).get("track", [])
+    track_count = len(tracks) if isinstance(tracks, list) else 1 if tracks else 0
+
+    return {
+        **base,
+        "listeners": listeners,
+        "track_count": track_count,
+        "plays_per_track": _safe_div(playcount, track_count),
+        "plays_per_listener": _safe_div(playcount, listeners),
+    }
+
+
 @st.cache_data(show_spinner=True)
 def enrich_albums(df: pd.DataFrame) -> pd.DataFrame:
     if not isinstance(df, pd.DataFrame):
@@ -104,51 +142,23 @@ def enrich_albums(df: pd.DataFrame) -> pd.DataFrame:
             ]
         )
 
-    records = []
+    records: list[Dict[str, Any] | None] = [None] * len(df)
+    max_workers = min(8, len(df))
 
-    for row in df.itertuples(index=False):
-        album_name = getattr(row, "album_name", None)
-        artist_name = getattr(row, "artist_name", None)
-        playcount = parse_int(getattr(row, "playcount", None), 0)
-        rank = parse_int(getattr(row, "rank", None), 0)
-
-        base = {
-            "album_name": album_name,
-            "artist_name": artist_name,
-            "playcount": playcount,
-            "rank": rank,
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(
+                _build_album_record,
+                getattr(row, "album_name", None),
+                getattr(row, "artist_name", None),
+                parse_int(getattr(row, "playcount", None)) or 0,
+                parse_int(getattr(row, "rank", None)) or 0,
+            ): idx
+            for idx, row in enumerate(df.itertuples(index=False))
         }
 
-        if not album_name or not artist_name:
-            records.append(
-                {
-                    **base,
-                    "listeners": None,
-                    "track_count": 0,
-                    "plays_per_track": None,
-                    "plays_per_listener": None,
-                }
-            )
-            continue
-
-        response = get_album_info(str(artist_name), str(album_name))
-
-        album = response.get("album", {}) if response else {}
-
-        listeners = parse_int(album.get("listeners"))
-
-        tracks = album.get("tracks", {}).get("track", [])
-
-        track_count = len(tracks) if isinstance(tracks, list) else 1 if tracks else 0
-
-        records.append(
-            {
-                **base,
-                "listeners": listeners,
-                "track_count": track_count,
-                "plays_per_track": _safe_div(playcount, track_count),
-                "plays_per_listener": _safe_div(playcount, listeners),
-            }
-        )
+        for future in as_completed(futures):
+            idx = futures[future]
+            records[idx] = future.result()
 
     return pd.DataFrame(records)
