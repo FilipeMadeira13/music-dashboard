@@ -1,4 +1,3 @@
-import plotly.express as px
 import streamlit as st
 
 from api.lastfm_client import enrich_albums, fetch_lastfm, normalize_albums
@@ -9,54 +8,83 @@ st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 
 
 # ------------------------
-# Carregamento de dados
+# DATA
 # ------------------------
 @st.cache_data(show_spinner=True)
-def load_data(artist, quantity):
+def load_data(artist: str, quantity: int):
     artist = artist.strip()
 
+    if not artist:
+        return None
+
     data = fetch_lastfm("artist.gettopalbums", artist=artist, limit=quantity)
-    albums = data["topalbums"]["album"]
+
+    albums = data.get("topalbums", {}).get("album", [])
+
+    if not albums:
+        return None
 
     df = normalize_albums(albums)
+
+    if df.empty:
+        return None
+
     df = enrich_albums(df)
 
     return df
 
 
 # ------------------------
-# Dashboard
+# UI
 # ------------------------
 st.title("Dashboard Musical :red[last.fm]", text_alignment="center")
 
 artist = st.text_input("Digite o artista", "Metallica")
-quantity = st.number_input("Número de álbuns", 2, 50, 10)
+quantity = st.number_input("Número de álbuns", min_value=2, max_value=50, value=10)
 
 if artist:
     df = load_data(artist, quantity)
 
+    if df is None or df.empty:
+        st.warning("Nenhum álbum encontrado.")
+        st.stop()
+
+    # ------------------------
+    # SORT
+    # ------------------------
     df = df.sort_values(by="rank").reset_index(drop=True)
 
+    # ------------------------
+    # TABLE
+    # ------------------------
     with st.expander("Colunas"):
-        colunas = st.multiselect(
-            "Selecione as colunas", list(df.columns), list(df.columns)
+        selected_columns = st.multiselect(
+            "Selecione as colunas",
+            options=df.columns.tolist(),
+            default=df.columns.tolist(),
         )
-    st.dataframe(df[colunas])
-    st.markdown("Escreva um nome para o arquivo")
-    coluna1, coluna2 = st.columns(2)
-    with coluna1:
-        nome_arquivo = st.text_input(
+
+    st.dataframe(df[selected_columns], use_container_width=True)
+
+    # ------------------------
+    # DOWNLOAD
+    # ------------------------
+    st.markdown("### Exportar dados")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        file_name = st.text_input(
             "Nome do arquivo",
-            label_visibility="collapsed",
             value="albums",
-            key="albums_input",
+            label_visibility="collapsed",
         )
-        nome_arquivo += ".csv"
-    with coluna2:
+
+    with col2:
         st.download_button(
-            "Fazer o download da tabela em CSV",
-            data=dataframe_to_csv_bytes(df),
-            file_name=nome_arquivo,
+            "Baixar CSV",
+            data=dataframe_to_csv_bytes(df[selected_columns]),
+            file_name=f"{file_name}.csv",
             mime="text/csv",
             on_click=show_success_message,
         )
