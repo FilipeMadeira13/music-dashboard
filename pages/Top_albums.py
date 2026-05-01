@@ -30,6 +30,7 @@ def load_data(artist: str, quantity: int):
         return None
 
     df = enrich_albums(df)
+    df = df.drop(columns=["artist_name"], errors="ignore")
 
     return df
 

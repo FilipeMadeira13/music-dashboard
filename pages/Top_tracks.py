@@ -32,6 +32,7 @@ def load_data(artist: str, quantity: int):
     df["plays_per_listener"] = [
         _safe_div(p, l) for p, l in zip(df["playcount"], df["listeners"])
     ]
+    df = df.drop(columns=["artist_name"], errors="ignore")
 
     return df
 

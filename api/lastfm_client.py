@@ -92,10 +92,12 @@ def _build_album_record(
     playcount: int | None,
     rank: int | None,
 ) -> Dict[str, Any]:
+    playcount_parsed = parse_int(playcount, 0)
+
     base = {
         "album_name": album_name,
         "artist_name": artist_name,
-        "playcount": parse_int(playcount, 0),
+        "playcount": playcount_parsed,
         "rank": parse_int(rank, 0),
     }
 
@@ -104,8 +106,9 @@ def _build_album_record(
             **base,
             "listeners": None,
             "track_count": 0,
-            "plays_per_track": None,
             "plays_per_listener": None,
+            "plays_per_track": None,
+            "plays_per_listener_per_track": None,
         }
 
     response = get_album_info(str(artist_name), str(album_name))
@@ -113,17 +116,25 @@ def _build_album_record(
 
     listeners = parse_int(album.get("listeners"))
     tracks = album.get("tracks", {}).get("track", [])
-    track_count = len(tracks) if isinstance(tracks, list) else 1 if tracks else 0
 
-    plays_per_track = _safe_div(playcount, track_count)
-    plays_per_listener = _safe_div(plays_per_track, listeners)
+    if isinstance(tracks, list):
+        track_count = len(tracks)
+    elif tracks:
+        track_count = 1
+    else:
+        track_count = 0
+
+    plays_per_listener = _safe_div(playcount_parsed, listeners)
+    plays_per_track = _safe_div(playcount_parsed, track_count)
+    plays_per_listener_per_track = _safe_div(plays_per_track, listeners)
 
     return {
         **base,
         "listeners": listeners,
         "track_count": track_count,
-        "plays_per_track": plays_per_track,
         "plays_per_listener": plays_per_listener,
+        "plays_per_track": plays_per_track,
+        "plays_per_listener_per_track": plays_per_listener_per_track,
     }
 
 
