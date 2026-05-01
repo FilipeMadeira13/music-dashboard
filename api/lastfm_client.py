@@ -117,12 +117,7 @@ def _build_album_record(
     listeners = parse_int(album.get("listeners"))
     tracks = album.get("tracks", {}).get("track", [])
 
-    if isinstance(tracks, list):
-        track_count = len(tracks)
-    elif tracks:
-        track_count = 1
-    else:
-        track_count = 0
+    track_count = _resolve_track_count(tracks)
 
     plays_per_listener = _safe_div(playcount_parsed, listeners)
     plays_per_track = _safe_div(playcount_parsed, track_count)
@@ -154,6 +149,7 @@ def enrich_albums(df: pd.DataFrame) -> pd.DataFrame:
                 "track_count",
                 "plays_per_track",
                 "plays_per_listener",
+                "plays_per_listener_per_track",
             ]
         )
 

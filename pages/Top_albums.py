@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 
 from api.lastfm_client import enrich_albums, fetch_lastfm, normalize_albums
@@ -11,7 +12,7 @@ st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 # DATA
 # ------------------------
 @st.cache_data(show_spinner=True)
-def load_data(artist: str, quantity: int):
+def load_data(artist: str, quantity: int) -> pd.DataFrame | None:
     artist = artist.strip()
 
     if not artist:

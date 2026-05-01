@@ -15,7 +15,10 @@ st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 @st.cache_data(show_spinner=True)
 def load_data(artist: str, quantity: int) -> pd.DataFrame:
     data = fetch_lastfm("artist.getsimilar", artist=artist, limit=quantity)
-    artists = data.get("similarartists", {}).get("artist", [])
+    artists = data.get("similarartists", {}).get("artist", []) or []
+
+    if not artists:
+        return pd.DataFrame(columns=["Artista", "Match"])
 
     df = pd.json_normalize(artists)
     df = df[["name", "match"]].rename(
