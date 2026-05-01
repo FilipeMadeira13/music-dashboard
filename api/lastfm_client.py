@@ -110,16 +110,20 @@ def _build_album_record(
 
     response = get_album_info(str(artist_name), str(album_name))
     album = response.get("album", {}) if response else {}
+
     listeners = parse_int(album.get("listeners"))
     tracks = album.get("tracks", {}).get("track", [])
     track_count = len(tracks) if isinstance(tracks, list) else 1 if tracks else 0
+
+    plays_per_track = _safe_div(playcount, track_count)
+    plays_per_listener = _safe_div(plays_per_track, listeners)
 
     return {
         **base,
         "listeners": listeners,
         "track_count": track_count,
-        "plays_per_track": _safe_div(playcount, track_count),
-        "plays_per_listener": _safe_div(playcount, listeners),
+        "plays_per_track": plays_per_track,
+        "plays_per_listener": plays_per_listener,
     }
 
 
