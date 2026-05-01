@@ -28,52 +28,68 @@ def load_data(artist: str, quantity: int) -> pd.DataFrame:
     return df
 
 
-## Dashboard
+# ------------------------
+# UI
+# ------------------------
 st.title("Dashboard Musical :red[last.fm]", text_alignment="center")
 
 artist = st.text_input("Digite o artista", "Metallica")
-quantity = st.number_input("Número de artistas", 2, 250, 10)
+quantity = st.number_input("Número de artistas", min_value=2, max_value=250, value=10)
 
 if artist:
     df = load_data(artist, quantity)
-    df.columns = ["Artista", "Match"]
 
-    ### Gráficos
+    if df.empty:
+        st.warning("Nenhum artista encontrado.")
+        st.stop()
+
+    # ------------------------
+    # METRICS
+    # ------------------------
+    media_match = df["Match"].mean()
+    st.metric("Similaridade média do Artista", f"{media_match:.2f}")
+
+    # ------------------------
+    # CHART
+    # ------------------------
     fig_match = px.line(
         df,
         x="Artista",
         y="Match",
-        range_y=(0, df.Match.max()),
         title="Similaridade com o artista",
     )
+    st.plotly_chart(fig_match, use_container_width=True)
 
-    ### Dashboard/Métricas
-
-    media_match = df["Match"].astype(float).mean()
-    st.metric("Similaridade média do Artista", f"{media_match:.2f}")
-
-    ### Dashboard/Tabela
+    # ------------------------
+    # TABLE
+    # ------------------------
     with st.expander("Colunas"):
-        colunas = st.multiselect(
-            "Selecione as colunas", list(df.columns), list(df.columns)
+        selected_columns = st.multiselect(
+            "Selecione as colunas",
+            options=df.columns.tolist(),
+            default=df.columns.tolist(),
         )
-    st.dataframe(df[colunas])
-    st.plotly_chart(fig_match)
-    st.markdown("Escreva um nome para o arquivo")
-    coluna1, coluna2 = st.columns(2)
-    with coluna1:
-        nome_arquivo = st.text_input(
+    st.dataframe(df[selected_columns], use_container_width=True)
+
+    # ------------------------
+    # DOWNLOAD
+    # ------------------------
+    st.markdown("### Exportar dados")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        file_name = st.text_input(
             "Nome do arquivo",
-            label_visibility="collapsed",
             value="similar_artists",
-            key="artist_input",
+            label_visibility="collapsed",
         )
-        nome_arquivo += ".csv"
-    with coluna2:
+
+    with col2:
         st.download_button(
-            "Fazer o download da tabela em CSV",
-            data=dataframe_to_csv_bytes(df),
-            file_name=nome_arquivo,
+            "Baixar CSV",
+            data=dataframe_to_csv_bytes(df[selected_columns]),
+            file_name=f"{file_name}.csv",
             mime="text/csv",
             on_click=show_success_message,
         )
