@@ -13,7 +13,12 @@ st.set_page_config(page_icon="🎵", page_title="Dashboard Musical")
 # DATA
 # ------------------------
 @st.cache_data(show_spinner=True)
-def load_data(artist: str, quantity: int) -> pd.DataFrame:
+def load_data(artist: str, quantity: int) -> pd.DataFrame | None:
+    artist = artist.strip()
+
+    if not artist:
+        return None
+
     data = fetch_lastfm("artist.getsimilar", artist=artist, limit=quantity)
     artists = data.get("similarartists", {}).get("artist", []) or []
 
@@ -42,7 +47,7 @@ quantity = st.number_input("Número de artistas", min_value=2, max_value=250, va
 if artist:
     df = load_data(artist, quantity)
 
-    if df.empty:
+    if df is None or df.empty:
         st.warning("Nenhum artista encontrado.")
         st.stop()
 
@@ -72,6 +77,7 @@ if artist:
             options=df.columns.tolist(),
             default=df.columns.tolist(),
         )
+
     st.dataframe(df[selected_columns], use_container_width=True)
 
     # ------------------------
