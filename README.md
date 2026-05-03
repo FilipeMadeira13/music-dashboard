@@ -2,6 +2,8 @@
 
 > Dashboard interativo para explorar dados musicais com a API do Last.fm — artistas, álbuns, faixas e muito mais.
 
+[Link para o aplicativo](https://music-dashboard-filipemadeira.streamlit.app/)
+
 ---
 
 ## 📌 Visão Geral
