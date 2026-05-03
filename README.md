@@ -80,7 +80,7 @@ source .venv/bin/activate
 **3. Instale as dependências**
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt streamlit
 ```
 
 **4. Configure as variáveis de ambiente**
